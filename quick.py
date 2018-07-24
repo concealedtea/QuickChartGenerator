@@ -125,7 +125,7 @@ def main():
             fig, ax= plt.subplots()
             dfBars_pivot.plot.bar(fontsize = 7, stacked=True, title = region + ' ' + platform + ' Receives', rot = 0, ax = ax)
             plt.subplots_adjust(bottom=0.25, top = 0.95)
-            fmt = '{x:,}'
+            fmt = '{x:,.00f}'
             tick = mtick.StrMethodFormatter(fmt)
             ax.yaxis.set_major_formatter(tick)
             ax.grid(linestyle = 'dotted')
