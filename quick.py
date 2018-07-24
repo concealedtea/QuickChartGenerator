@@ -30,8 +30,8 @@ def exec_query(query_text,region,platform,driver= "{ODBC Driver 13 for SQL Serve
     return conn
 
 def emailer():
-    fromaddr = "spigotcharts@gmail.com"
-    toaddr = "push@spigot.com"
+    fromaddr = "REMOVED"
+    toaddr = "REMOVED"
     regions = ['US','GB','CA','IN']
     platforms = ['Desktop', 'Mobile']
     types = ['RPM', 'Receives']
@@ -74,7 +74,7 @@ def emailer():
 
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
-    server.login(fromaddr, 'spigotcharts12345')
+    server.login(fromaddr, 'REMOVED')
     server.sendmail(fromaddr, toaddr, msgRoot.as_string())
     server.quit()
 
@@ -121,18 +121,25 @@ def main():
             # Bar Graphs for Advertisers
             dfBars = df.drop('RPM', 1)
             dfBars = dfBars[df.advertiser != 'Grand Total']
-            dfBars_pivot = dfBars.pivot(index = 'date', columns = 'advertiser', values = '{:,}'.format(dfBars['receives']))
-            fig, ax = plt.subplots()
-            dfBars_pivot.plot.bar(fontsize = 7, stacked=True, title = region + ' ' + platform + ' Receives', rot = 0, ax = ax, table = True)
+            dfBars_pivot = dfBars.pivot(index = 'date', columns = 'advertiser', values = 'receives')
+            fig, ax= plt.subplots()
+            dfBars_pivot.plot.bar(fontsize = 7, stacked=True, title = region + ' ' + platform + ' Receives', rot = 0, ax = ax)
+            plt.subplots_adjust(bottom=0.25, top = 0.95)
+            fmt = '{x:,}'
+            tick = mtick.StrMethodFormatter(fmt)
+            ax.yaxis.set_major_formatter(tick)
             ax.grid(linestyle = 'dotted')
             ax.set_axisbelow(True)
-            plt.legend(loc='upper center', frameon=False, ncol = len(dfBars['advertiser']), prop={'size': 6})
-            plt.tick_params(axis='x',          # changes apply to the x-axis
-                            which='both',      # both major and minor ticks are affected
-                            bottom=False,      # ticks along the bottom edge are off
-                            top=False,         # ticks along the top edge are off
-                            labelbottom=False)
+            ax.xaxis.set_major_formatter(plt.NullFormatter())
             ax.xaxis.label.set_visible(False)
+            plt.legend(loc='upper center', frameon=False, ncol = len(dfBars['advertiser']), prop={'size': 6})
+            temp = []
+            for item in dfBars.receives:
+                temp.append('{:,}'.format(item))
+            dfBars.receives = temp
+            tableBars = dfBars.pivot(index = 'advertiser', columns = 'date', values = 'receives')
+            tableBars = tableBars.fillna('-')
+            plt.table(cellText = tableBars.values, rowLabels = tableBars.index, colLabels = tableBars.columns, loc = 'bottom')
             plt.tight_layout()
             fig = plt.gcf()
             fig.savefig(region+platform+'Receives.png', bbox_inches='tight')
@@ -141,26 +148,31 @@ def main():
             dfLines = df.drop('receives', 1)
             dfLines_pivot = dfLines.pivot(index = 'date', columns = 'advertiser', values = 'RPM')
             fig, ax = plt.subplots()
-            dfLines_pivot.plot(fontsize = 8, title = region + ' ' + platform + ' RPM', rot = 0, ax = ax, figsize=(20,5), table = True, linewidth = 3)
-            fmt = '${x:,.00f}'
+            dfLines_pivot.fillna('-')
+            dfLines_pivot.plot(fontsize = 8, title = region + ' ' + platform + ' RPM', rot = 0, ax = ax, linewidth = 3)
+            plt.subplots_adjust(bottom=0.25, top = 0.95)
+            fmt = '${x:}'
             tick = mtick.StrMethodFormatter(fmt)
+            ax.yaxis.set_major_formatter(tick)
+            fmt = '${x:,.00f}'
             ax.grid(linestyle = 'dotted')
             ax.set_axisbelow(True)
-            ax.yaxis.set_major_formatter(tick)
-            plt.yticks(np.arange((math.floor(min(dfLines['RPM']))), (math.ceil(max(dfLines['RPM'])) + 2), 1.0))
-            plt.legend(loc='upper center', frameon=False, ncol = len(dfBars['advertiser']), prop={'size': 8})
-            plt.tick_params(axis='x',          # changes apply to the x-axis
-                            which='both',      # both major and minor ticks are affected
-                            bottom=False,      # ticks along the bottom edge are off
-                            top=False,         # ticks along the top edge are off
-                            labelbottom=False)
+            ax.xaxis.set_major_formatter(plt.NullFormatter())
             ax.xaxis.label.set_visible(False)
-            ax.tick_params(labelbottom='off')
+            plt.yticks(np.arange((math.floor(min(dfLines['RPM']))), (math.ceil(max(dfLines['RPM'])) + 2), 0.5))
+            plt.legend(loc='upper center', frameon=False, ncol = len(dfBars['advertiser']), prop={'size': 6})
+            temp = []
+            for item in dfLines.RPM:
+                temp.append('${:}'.format(item))
+            dfLines.RPM = temp
+            tableLines = dfLines.pivot(index = 'advertiser', columns = 'date', values = 'RPM')
+            tableLines = tableLines.fillna('-')
+            plt.table(cellText = tableLines.values, rowLabels = tableLines.index, colLabels = tableLines.columns, loc = 'bottom')
             plt.tight_layout()
             fig = plt.gcf()
             fig.savefig(region+platform+'RPM.png', bbox_inches='tight')
     writer.save()
-    #emailer()
+    emailer()
 
 if __name__ == '__main__':
     main()
