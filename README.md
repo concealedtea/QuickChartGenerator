@@ -9,7 +9,7 @@
 - Generate Charts for RPM and Receives on a 7 day basis for [Spigot Inc](https://www.spigot.com/). 
 - Provide analysis and daily email updates to Push Notification team  
 
-## Examples
+## Examples (Not Real Numbers)
 <b>Images</b>:   
   
 - RPM Charts    
