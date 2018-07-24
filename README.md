@@ -9,7 +9,7 @@
 
 ## Examples
 *RPM Charts  
-![alt-text](https://imgur.com/slWCLUu)  
+![alt-text](https://i.imgur.com/slWCLUu.png)  
 
 *Receives Chart  
-![alt-text](https://imgur.com/9YpjJR5)  
+![alt-text](https://i.imgur.com/9YpjJR5.png)  
