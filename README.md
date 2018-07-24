@@ -4,12 +4,16 @@
 [![ForTheBadge built-with-love](http://ForTheBadge.com/images/badges/built-with-love.svg)](https://GitHub.com/concealedtea/)
 
 ## Features
-*Generate Charts for RPM and Receives on a 7 day basis for Spigot Inc.
-*Provide analysis and daily email updates to Push Notification team
+Includes :   
+  
+- Generate Charts for RPM and Receives on a 7 day basis for Spigot Inc. 
+- Provide analysis and daily email updates to Push Notification team  
 
 ## Examples
-*RPM Charts  
+Images:   
+  
+- RPM Charts    
 ![alt-text](https://i.imgur.com/slWCLUu.png)  
 
-*Receives Chart  
+- Receives Chart  
 ![alt-text](https://i.imgur.com/9YpjJR5.png)  
