@@ -88,7 +88,7 @@ def main():
             query = ("""SELECT * FROM
                                 (SELECT
                                         [Date] as date,
-                                		'Grand Total' as advertiser,
+                                		'Blended' as advertiser,
                                         SUM([Receives]) as receives,
                                         ROUND(ISNULL(1000 * SUM(revenue) / NULLIF(CAST(SUM(receives) AS FLOAT),0),0),2) AS RPM
                                 FROM [Reports].[dbo].[DailyRPC]
@@ -113,14 +113,58 @@ def main():
                                 group by
                                     date, Advertiser
                                 HAVING
-                                    ISNULL(1000 * SUM(revenue) / NULLIF(CAST(SUM(receives) AS FLOAT),0),0) > 0)
-                                    """)
+                                    ISNULL(1000 * SUM(revenue) / NULLIF(CAST(SUM(receives) AS FLOAT),0),0) > 0)""")
+            query2 =  ("""SELECT * FROM
+                            		(SELECT
+                            				[Date] as date,
+                            				'Blended/Total' as advertiser,
+                            				SUM([Receives]) as receives,
+                            				ROUND(ISNULL(1000 * SUM(revenue) / NULLIF(CAST(SUM(receives) AS FLOAT),0),0),2) AS RPM,
+                            				CASE
+                            					WHEN age < 8 THEN '0-7'
+                            					WHEN age > 7 AND age < 22 THEN  '8-21'
+                            					WHEN age > 22 THEN '22+'
+                            				ELSE '22+'
+                            				END as age
+                            		FROM [Reports].[dbo].[PaybackMetrics]
+                            		where 1=1
+                            		and date BETWEEN CAST(DATEADD(DAY,-7,GETDATE()) AS DATE) AND CAST(DATEADD(DAY,-1,GETDATE()) AS DATE)
+                                    and country = '"""+region+"""'
+                                    and platform = '"""+platform+"""'
+                            		group by
+                            			date, age
+                            		HAVING
+                            			ISNULL(1000 * SUM(revenue) / NULLIF(CAST(SUM(receives) AS FLOAT),0),0) > 0
+                            		) as A
+                            		UNION ALL (SELECT
+                            				[Date] as date,
+                            				[Advertiser] as advertiser,
+                            				SUM([Receives]) as receives,
+                            				ROUND(ISNULL(1000 * SUM(revenue) / NULLIF(CAST(SUM(receives) AS FLOAT),0),0),2) AS RPM,
+                            				CASE
+                            					WHEN age < 8 THEN '0-7'
+                            					WHEN age > 7 AND age < 22 THEN  '8-21'
+                            					WHEN age > 22 THEN '22+'
+                            				ELSE '22+'
+                            				END as age
+                            		FROM [Reports].[dbo].[PaybackMetrics]
+                            		where 1=1
+                            		and date BETWEEN CAST(DATEADD(DAY,-7,GETDATE()) AS DATE) AND CAST(DATEADD(DAY,-1,GETDATE()) AS DATE)
+                                    and country = '"""+region+"""'
+                                    and platform = '"""+platform+"""'
+                            		group by
+                            			date, Advertiser, age
+                            		HAVING
+                            			ISNULL(1000 * SUM(revenue) / NULLIF(CAST(SUM(receives) AS FLOAT),0),0) > 0
+                            		)""")
             msql_db = exec_query(query, region, platform)
             df = pd.read_sql(query, msql_db)
-            df.to_excel(writer, region+platform)
+            df2 = pd.read_sql(query2, msql_db)
+            df2.to_excel(writer, region+platform)
             # Bar Graphs for Advertisers
             dfBars = df.drop('RPM', 1)
-            dfBars = dfBars[df.advertiser != 'Grand Total']
+            dfBarsWBlend = dfBars.replace('Blended', 'Total')
+            dfBars = dfBars[df.advertiser != 'Blended']
             dfBars_pivot = dfBars.pivot(index = 'date', columns = 'advertiser', values = 'receives')
             fig, ax= plt.subplots()
             dfBars_pivot.plot.bar(fontsize = 7, stacked=True, title = region + ' ' + platform + ' Receives', rot = 0, ax = ax)
@@ -133,13 +177,17 @@ def main():
             ax.xaxis.set_major_formatter(plt.NullFormatter())
             ax.xaxis.label.set_visible(False)
             plt.legend(loc='upper center', frameon=False, ncol = len(dfBars['advertiser']), prop={'size': 6})
+            # Bar Table
             temp = []
-            for item in dfBars.receives:
+            for item in dfBarsWBlend.receives:
                 temp.append('{:,}'.format(item))
-            dfBars.receives = temp
-            tableBars = dfBars.pivot(index = 'advertiser', columns = 'date', values = 'receives')
-            tableBars = tableBars.fillna('-')
-            plt.table(cellText = tableBars.values, rowLabels = tableBars.index, colLabels = tableBars.columns, loc = 'bottom')
+            dfBarsWBlend.receives = temp
+            tableBars = dfBarsWBlend.pivot(index = 'advertiser', columns = 'date', values = 'receives')
+            dfTemp = tableBars.loc[tableBars.index == 'Total']
+            tableBars = tableBars.loc[tableBars.index != 'Total']
+            tableNew = pd.concat([tableBars,dfTemp], axis = 0)
+            tableNew = tableNew.fillna('-')
+            plt.table(cellText = tableNew.values, rowLabels = tableNew.index, colLabels = tableNew.columns, loc = 'bottom')
             plt.tight_layout()
             fig = plt.gcf()
             fig.savefig(region+platform+'Receives.png', bbox_inches='tight')
@@ -149,7 +197,13 @@ def main():
             dfLines_pivot = dfLines.pivot(index = 'date', columns = 'advertiser', values = 'RPM')
             fig, ax = plt.subplots()
             dfLines_pivot.fillna('-')
-            dfLines_pivot.plot(fontsize = 8, title = region + ' ' + platform + ' RPM', rot = 0, ax = ax, linewidth = 3)
+            pos = 0
+            for i in range(0,len(dfLines_pivot.columns)):
+                if (dfLines_pivot.columns[i] == 'Blended'):
+                    pos = i
+            styles = ['-'] * len(dfLines_pivot.columns)
+            styles[pos] = ':'
+            dfLines_pivot.plot(fontsize = 8, title = region + ' ' + platform + ' RPM', rot = 0, ax = ax, linewidth = 2, style = styles)
             plt.subplots_adjust(bottom=0.25, top = 0.95)
             fmt = '${x:}'
             tick = mtick.StrMethodFormatter(fmt)
@@ -159,15 +213,19 @@ def main():
             ax.set_axisbelow(True)
             ax.xaxis.set_major_formatter(plt.NullFormatter())
             ax.xaxis.label.set_visible(False)
-            plt.yticks(np.arange((math.floor(min(dfLines['RPM']))), (math.ceil(max(dfLines['RPM'])) + 2), 0.5))
+            plt.yticks(np.arange((math.floor(min(dfLines['RPM']))), (math.ceil(max(dfLines['RPM'])) * 1.1), 0.5))
             plt.legend(loc='upper center', frameon=False, ncol = len(dfBars['advertiser']), prop={'size': 6})
+            # Line Table
             temp = []
             for item in dfLines.RPM:
-                temp.append('${:}'.format(item))
+                temp.append('${:.2f}'.format(item))
             dfLines.RPM = temp
             tableLines = dfLines.pivot(index = 'advertiser', columns = 'date', values = 'RPM')
-            tableLines = tableLines.fillna('-')
-            plt.table(cellText = tableLines.values, rowLabels = tableLines.index, colLabels = tableLines.columns, loc = 'bottom')
+            dfTemp = tableLines.loc[tableLines.index == 'Blended']
+            tableLines = tableLines.loc[tableLines.index != 'Blended']
+            tableNew = pd.concat([tableLines,dfTemp], axis = 0)
+            tableNew = tableNew.fillna('-')
+            plt.table(cellText = tableNew.values, rowLabels = tableNew.index, colLabels = tableNew.columns, loc = 'bottom')
             plt.tight_layout()
             fig = plt.gcf()
             fig.savefig(region+platform+'RPM.png', bbox_inches='tight')
