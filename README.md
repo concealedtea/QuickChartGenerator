@@ -20,8 +20,8 @@ Png files will be deposited in folder and emailed to the address specified.
 ## Examples (Not Real Numbers)
 <b>Images</b>:   
   
-- RPM Charts    
+- <b>RPM Charts</b>    
 ![alt-text](https://i.imgur.com/slWCLUu.png)  
 
-- Receives Chart  
+- <b>Receives Chart</b>  
 ![alt-text](https://i.imgur.com/9YpjJR5.png)  
