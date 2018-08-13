@@ -9,6 +9,14 @@
 - Generate Charts for RPM(Revenue Per Thousand) and Receives on a 7 day basis for [Spigot Inc](https://www.spigot.com/). 
 - Provide analysis and daily email updates to Push Notification team  
 
+## How to Run  
+Replace the REMOVED's with actual databases, emails, and passwords. 
+<b> Navigate to local directory </b>
+```
+> python quick.py
+```
+Png files will be deposited in folder and emailed to the address specified.
+
 ## Examples (Not Real Numbers)
 <b>Images</b>:   
   
