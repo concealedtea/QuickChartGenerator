@@ -18,8 +18,8 @@ from email import encoders
 import smtplib
 import email
 
-def exec_query(query_text,region,platform,driver= "{ODBC Driver 13 for SQL Server};",server= "REMOVED;",
-               database= "REMOVED;",UID= "REMOVED;",PWD= "REMOVED;",return_value= True):
+def exec_query(query_text,region,platform,driver= "{ODBC Driver 13 for SQL Server};",server= "push.ctwzprc2znex.us-east-1.rds.amazonaws.com;",
+               database= "Reports;",UID= "bob;",PWD= "industrylawpricesomewhere;",return_value= True):
     conn= pyodbc.connect(
         r'DRIVER='+driver+
         r'SERVER='+server+
@@ -30,8 +30,8 @@ def exec_query(query_text,region,platform,driver= "{ODBC Driver 13 for SQL Serve
     return conn
 
 def emailer():
-    fromaddr = "REMOVED"
-    toaddr = "REMOVED"
+    fromaddr = "spigotcharts@gmail.com"
+    toaddr = "push@spigot.com"
     regions = ['US','GB','CA','IN']
     platforms = ['Desktop', 'Mobile']
     types = ['RPM', 'Receives']
@@ -74,7 +74,7 @@ def emailer():
 
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
-    server.login(fromaddr, 'REMOVED')
+    server.login(fromaddr, 'spigotcharts12345')
     server.sendmail(fromaddr, toaddr, msgRoot.as_string())
     server.quit()
 
@@ -93,7 +93,7 @@ def main():
                                         ROUND(ISNULL(1000 * SUM(revenue) / NULLIF(CAST(SUM(receives) AS FLOAT),0),0),2) AS RPM
                                 FROM [Reports].[dbo].[DailyRPC]
                                 where 1=1
-                                and date BETWEEN CAST(DATEADD(DAY,-7,GETDATE()) AS DATE) AND CAST(DATEADD(DAY,-1,GETDATE()) AS DATE)
+                                and date BETWEEN CAST(DATEADD(DAY,-9,GETDATE()) AS DATE) AND CAST(DATEADD(DAY,-1,GETDATE()) AS DATE)
                                 and country = '"""+region+"""'
                                 and platform = '"""+platform+"""'
                                 group by
@@ -107,66 +107,63 @@ def main():
                                         ROUND(ISNULL(1000 * SUM(revenue) / NULLIF(CAST(SUM(receives) AS FLOAT),0),0),2) AS RPM
                                 FROM [Reports].[dbo].[DailyRPC]
                                 where 1=1
-                                and date BETWEEN CAST(DATEADD(DAY,-7,GETDATE()) AS DATE) AND CAST(DATEADD(DAY,-1,GETDATE()) AS DATE)
+                                and date BETWEEN CAST(DATEADD(DAY,-9,GETDATE()) AS DATE) AND CAST(DATEADD(DAY,-1,GETDATE()) AS DATE)
                                 and country = '"""+region+"""'
                                 and platform = '"""+platform+"""'
                                 group by
-                                    date, Advertiser
+                                    date, advertiser
                                 HAVING
                                     ISNULL(1000 * SUM(revenue) / NULLIF(CAST(SUM(receives) AS FLOAT),0),0) > 0)""")
-            query2 =  ("""SELECT * FROM
-                            		(SELECT
-                            				[Date] as date,
-                            				'Blended/Total' as advertiser,
-                            				SUM([Receives]) as receives,
-                            				ROUND(ISNULL(1000 * SUM(revenue) / NULLIF(CAST(SUM(receives) AS FLOAT),0),0),2) AS RPM,
-                            				CASE
-                            					WHEN age < 8 THEN '0-7'
-                            					WHEN age > 7 AND age < 22 THEN  '8-21'
-                            					WHEN age > 22 THEN '22+'
-                            				ELSE '22+'
-                            				END as age
-                            		FROM [Reports].[dbo].[PaybackMetrics]
-                            		where 1=1
-                            		and date BETWEEN CAST(DATEADD(DAY,-7,GETDATE()) AS DATE) AND CAST(DATEADD(DAY,-1,GETDATE()) AS DATE)
-                                    and country = '"""+region+"""'
-                                    and platform = '"""+platform+"""'
-                            		group by
-                            			date, age
-                            		HAVING
-                            			ISNULL(1000 * SUM(revenue) / NULLIF(CAST(SUM(receives) AS FLOAT),0),0) > 0
-                            		) as A
-                            		UNION ALL (SELECT
-                            				[Date] as date,
-                            				[Advertiser] as advertiser,
-                            				SUM([Receives]) as receives,
-                            				ROUND(ISNULL(1000 * SUM(revenue) / NULLIF(CAST(SUM(receives) AS FLOAT),0),0),2) AS RPM,
-                            				CASE
-                            					WHEN age < 8 THEN '0-7'
-                            					WHEN age > 7 AND age < 22 THEN  '8-21'
-                            					WHEN age > 22 THEN '22+'
-                            				ELSE '22+'
-                            				END as age
-                            		FROM [Reports].[dbo].[PaybackMetrics]
-                            		where 1=1
-                            		and date BETWEEN CAST(DATEADD(DAY,-7,GETDATE()) AS DATE) AND CAST(DATEADD(DAY,-1,GETDATE()) AS DATE)
-                                    and country = '"""+region+"""'
-                                    and platform = '"""+platform+"""'
-                            		group by
-                            			date, Advertiser, age
-                            		HAVING
-                            			ISNULL(1000 * SUM(revenue) / NULLIF(CAST(SUM(receives) AS FLOAT),0),0) > 0
-                            		)""")
+            query2 =  ("""SELECT
+                                            usermetrics.[Date],
+											usermetrics.platform,
+											case when usermetrics.country = 'us' then 'US'
+													when usermetrics.country = 'gb' then 'GB'
+													when usermetrics.country = 'ca' then 'CA'
+													when usermetrics.country = 'in' then 'IN'
+													else 'Other'
+													end,
+                                            usermetrics.[Advertiser],
+											SUM(usermetrics.clicks * DailyRPC.RPC) as revenue,
+                                            SUM(usermetrics.[Receives]) as receives,
+                                            ROUND(ISNULL(1000.0 * SUM(usermetrics.clicks * DailyRPC.RPC) / NULLIF(CAST(SUM(usermetrics.receives) AS FLOAT),0),0),2) AS RPM,
+                                            CASE
+                                                WHEN age < 8 THEN '0-7'
+                                                WHEN age > 7 AND age < 22 THEN  '8-21'
+                                                WHEN age > 22 THEN '22+'
+                                            ELSE '22+'
+                                            END as age_bucket
+                                    FROM [Reports].[dbo].UserMetrics AS usermetrics
+                                    LEFT OUTER JOIN
+                                        Reports.dbo.DailyRPC AS DailyRPC ON DailyRPC.[date] = usermetrics.[date]
+                                            AND DailyRPC.Country = usermetrics.country
+                                            AND DailyRPC.advertiser = usermetrics.advertiser
+                                            AND DailyRPC.[platform] = usermetrics.[platform]
+                                    where 1=1
+                                    and usermetrics.date BETWEEN CAST(DATEADD(DAY,-7,GETDATE()) AS DATE) AND CAST(DATEADD(DAY,-1,GETDATE()) AS DATE)
+                                    group by
+                                        usermetrics.date,usermetrics.platform, case when usermetrics.country = 'us' then 'US'
+													when usermetrics.country = 'gb' then 'GB'
+													when usermetrics.country = 'ca' then 'CA'
+													when usermetrics.country = 'in' then 'IN'
+													else 'Other'
+													end, usermetrics.advertiser, CASE
+                                                WHEN age < 8 THEN '0-7'
+                                                WHEN age > 7 AND age < 22 THEN  '8-21'
+                                                WHEN age > 22 THEN '22+'
+                                            ELSE '22+'
+                                            END
+                                    HAVING
+                                        ROUND(ISNULL(1000.0 * SUM(usermetrics.clicks * DailyRPC.RPC) / NULLIF(CAST(SUM(usermetrics.receives) AS FLOAT),0),0),2) > 0""")
             msql_db = exec_query(query, region, platform)
             df = pd.read_sql(query, msql_db)
-            df2 = pd.read_sql(query2, msql_db)
-            df2.to_excel(writer, region+platform)
             # Bar Graphs for Advertisers
             dfBars = df.drop('RPM', 1)
             dfBarsWBlend = dfBars.replace('Blended', 'Total')
             dfBars = dfBars[df.advertiser != 'Blended']
             dfBars_pivot = dfBars.pivot(index = 'date', columns = 'advertiser', values = 'receives')
             fig, ax= plt.subplots()
+            dfBarsWBlend.loc[dfBarsWBlend['advertiser'] == 'Total'].plot.line(ax = ax)
             dfBars_pivot.plot.bar(fontsize = 7, stacked=True, title = region + ' ' + platform + ' Receives', rot = 0, ax = ax)
             plt.subplots_adjust(bottom=0.25, top = 0.95)
             fmt = '{x:,.00f}'
@@ -229,6 +226,8 @@ def main():
             plt.tight_layout()
             fig = plt.gcf()
             fig.savefig(region+platform+'RPM.png', bbox_inches='tight')
+    df2 = pd.read_sql(query2, msql_db)
+    df2.to_excel(writer, region+platform)
     writer.save()
     emailer()
 
