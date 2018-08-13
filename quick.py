@@ -18,8 +18,8 @@ from email import encoders
 import smtplib
 import email
 
-def exec_query(query_text,region,platform,driver= "{ODBC Driver 13 for SQL Server};",server= "push.ctwzprc2znex.us-east-1.rds.amazonaws.com;",
-               database= "Reports;",UID= "bob;",PWD= "industrylawpricesomewhere;",return_value= True):
+def exec_query(query_text,region,platform,driver= "{ODBC Driver 13 for SQL Server};",server= "REMOVED",
+               database= "REMOVED",UID= "REMOVED",PWD= "REMOVED",return_value= True):
     conn= pyodbc.connect(
         r'DRIVER='+driver+
         r'SERVER='+server+
@@ -30,8 +30,8 @@ def exec_query(query_text,region,platform,driver= "{ODBC Driver 13 for SQL Serve
     return conn
 
 def emailer():
-    fromaddr = "spigotcharts@gmail.com"
-    toaddr = "push@spigot.com"
+    fromaddr = "REMOVED"
+    toaddr = "REMOVED"
     regions = ['US','GB','CA','IN']
     platforms = ['Desktop', 'Mobile']
     types = ['RPM', 'Receives']
@@ -74,7 +74,7 @@ def emailer():
 
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
-    server.login(fromaddr, 'spigotcharts12345')
+    server.login(fromaddr, 'REMOVED')
     server.sendmail(fromaddr, toaddr, msgRoot.as_string())
     server.quit()
 
